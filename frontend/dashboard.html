@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - EPS Vitalis</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="dashboard-body">
+    <nav class="sidebar glass-panel">
+        <h2 class="brand-title">Vitalis<span>EPS</span></h2>
+        <p class="user-role" id="userRoleBadge">Rol</p>
+        
+        <ul class="nav-menu">
+            <li><button onclick="showSection('inicio')" class="nav-btn active">Inicio</button></li>
+            <li><button onclick="showSection('citas')" class="nav-btn">Mis Citas</button></li>
+            <li><button onclick="showSection('historial')" class="nav-btn">Historial Clínico</button></li>
+            <li><button onclick="showSection('facturas')" class="nav-btn">Facturación</button></li>
+        </ul>
+        
+        <button onclick="logout()" class="btn-secondary logout-btn">Cerrar Sesión</button>
+    </nav>
+
+    <main class="main-content">
+        <header class="top-header glass-panel">
+            <h1 id="userGreeting">Bienvenido</h1>
+        </header>
+
+        <div class="content-area">
+            
+            <section id="sec-inicio" class="content-section active-section">
+                <div class="cards-grid">
+                    <div class="card glass-panel">
+                        <h3>Próxima Cita</h3>
+                        <p id="nextAppointment">No hay citas programadas.</p>
+                    </div>
+                    <div class="card glass-panel">
+                        <h3>Estado de Cuenta</h3>
+                        <p id="accountStatus">Al día</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="sec-citas" class="content-section hidden-section">
+                <div class="glass-panel">
+                    <h2>Agendar Nueva Cita</h2>
+                    <form id="agendarCitaForm" class="grid-form">
+                        <div class="input-group">
+                            <label>Especialidad/Profesional</label>
+                            <select id="selectProfesional" required>
+                                <option value="">Cargando...</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Centro de Salud</label>
+                            <select id="selectCentro" required>
+                                <option value="">Cargando...</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Fecha y Hora</label>
+                            <input type="datetime-local" id="citaFecha" required>
+                        </div>
+                        <button type="submit" class="btn-primary">Agendar</button>
+                    </form>
+                </div>
+                
+                <div class="glass-panel mt-20">
+                    <h2>Historial de Citas</h2>
+                    <ul id="listaCitas" class="data-list"></ul>
+                </div>
+            </section>
+
+            <section id="sec-historial" class="content-section hidden-section">
+                <div class="glass-panel">
+                    <h2>Mi Historial Clínico</h2>
+                    <ul id="listaHistorial" class="data-list"></ul>
+                </div>
+            </section>
+
+            <section id="sec-facturas" class="content-section hidden-section">
+                <div class="glass-panel">
+                    <h2>Mis Facturas</h2>
+                    <ul id="listaFacturas" class="data-list"></ul>
+                </div>
+            </section>
+
+        </div>
+    </main>
+    <script src="app.js"></script>
+    <script>
+        // Check si está autenticado
+        if (!localStorage.getItem('token')) {
+            window.location.href = 'index.html';
+        }
+        initDashboard();
+    </script>
+</body>
+</html>

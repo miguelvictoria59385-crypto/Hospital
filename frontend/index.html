@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EPS Vitalis - Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="glass-panel">
+            <h1 class="brand-title">Vitalis<span>EPS</span></h1>
+            
+            <div class="tabs">
+                <button class="tab-btn active" id="tabLogin" onclick="switchTab('login')">Ingresar</button>
+                <button class="tab-btn" id="tabRegister" onclick="switchTab('register')">Registrarse</button>
+            </div>
+
+            <!-- Formularios -->
+            <form id="loginForm" class="auth-form active-form">
+                <div class="input-group">
+                    <label>Correo Electrónico</label>
+                    <input type="email" id="loginEmail" required placeholder="tu@correo.com">
+                </div>
+                <div class="input-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="loginPassword" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn-primary">Iniciar Sesión</button>
+                <p id="loginError" class="error-msg"></p>
+            </form>
+
+            <form id="registerForm" class="auth-form hidden-form">
+                <div class="input-group">
+                    <label>Nombre Completo</label>
+                    <input type="text" id="regName" required placeholder="Ej: Juan Pérez">
+                </div>
+                <div class="input-group">
+                    <label>Correo Electrónico</label>
+                    <input type="email" id="regEmail" required placeholder="tu@correo.com">
+                </div>
+                <div class="input-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="regPassword" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn-primary">Registrarse como Afiliado</button>
+                <p id="regError" class="error-msg"></p>
+                <p id="regSuccess" class="success-msg"></p>
+            </form>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
