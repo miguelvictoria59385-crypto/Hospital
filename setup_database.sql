@@ -2,6 +2,8 @@ CREATE DATABASE IF NOT EXISTS eps_hospital;
 USE eps_hospital;
 
 -- Eliminar tablas si existen (para empezar desde cero limpiamente)
+DROP TABLE IF EXISTS receta_medica;
+DROP TABLE IF EXISTS medicamento;
 DROP TABLE IF EXISTS historial_clinico;
 DROP TABLE IF EXISTS factura;
 DROP TABLE IF EXISTS cita;
@@ -88,12 +90,34 @@ CREATE TABLE historial_clinico (
 ) engine=InnoDB;
 
 
+CREATE TABLE medicamento (
+    id bigint not null auto_increment,
+    descripcion varchar(255) not null,
+    dosis_recomendada varchar(255) not null,
+    nombre varchar(255) not null,
+    primary key (id)
+) engine=InnoDB;
+
+CREATE TABLE receta_medica (
+    id bigint not null auto_increment,
+    fecha_emision date not null,
+    indicaciones varchar(255) not null,
+    historial_clinico_id bigint not null,
+    medicamento_id bigint not null,
+    primary key (id),
+    constraint FK_receta_historial foreign key (historial_clinico_id) references historial_clinico (id),
+    constraint FK_receta_medicamento foreign key (medicamento_id) references medicamento (id)
+) engine=InnoDB;
+
 -- 2. Insertar Datos Iniciales
 
 -- Todas las cuentas usan la contraseña: password
 SET @pass = '$2a$10$4/rPeRn1.LBnRm4cAtEIKeu04rgXiEK/JgWjunvydDjux8Ca3Fi5G';
 
 -- =============== USUARIOS ===============
+-- Administrador
+INSERT INTO usuario (nombre, email, password, rol) VALUES ('Super Admin', 'admin@eps.com', @pass, 'ADMINISTRATIVO');
+
 -- Profesionales
 INSERT INTO usuario (nombre, email, password, rol) VALUES ('Dr. Gregory House', 'house@eps.com', @pass, 'PROFESIONAL');
 INSERT INTO usuario (nombre, email, password, rol) VALUES ('Dra. Allison Cameron', 'cameron@eps.com', @pass, 'PROFESIONAL');
@@ -157,3 +181,13 @@ INSERT INTO factura (estado_pago, fecha_emision, monto, afiliado_id) VALUES ('PE
 INSERT INTO factura (estado_pago, fecha_emision, monto, afiliado_id) VALUES ('PAGADA', '2026-02-28', 200000.0, 3);
 INSERT INTO factura (estado_pago, fecha_emision, monto, afiliado_id) VALUES ('PENDIENTE', '2026-05-17', 45000.0, 4);
 INSERT INTO factura (estado_pago, fecha_emision, monto, afiliado_id) VALUES ('PENDIENTE', '2026-05-17', 30000.0, 5);
+
+-- =============== MEDICAMENTOS ===============
+INSERT INTO medicamento (nombre, descripcion, dosis_recomendada) VALUES ('Paracetamol 500mg', 'Analgésico y antipirético', '1 tableta cada 8 horas');
+INSERT INTO medicamento (nombre, descripcion, dosis_recomendada) VALUES ('Ibuprofeno 400mg', 'Antiinflamatorio no esteroideo', '1 tableta cada 8 horas con comida');
+INSERT INTO medicamento (nombre, descripcion, dosis_recomendada) VALUES ('Amoxicilina 500mg', 'Antibiótico de amplio espectro', '1 cápsula cada 8 horas por 7 días');
+INSERT INTO medicamento (nombre, descripcion, dosis_recomendada) VALUES ('Loratadina 10mg', 'Antihistamínico', '1 tableta al día');
+
+-- =============== RECETAS MÉDICAS ===============
+INSERT INTO receta_medica (fecha_emision, indicaciones, historial_clinico_id, medicamento_id) VALUES ('2026-04-10', 'Tomar para fiebre', 1, 1);
+INSERT INTO receta_medica (fecha_emision, indicaciones, historial_clinico_id, medicamento_id) VALUES ('2026-04-10', 'Tomar para el dolor si es necesario', 1, 2);

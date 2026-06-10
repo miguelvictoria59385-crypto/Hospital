@@ -21,6 +21,9 @@ public class DataController {
     @Autowired
     private ProfesionalRepository profesionalRepository;
 
+    @Autowired
+    private com.eps.hospital.repository.UsuarioRepository usuarioRepository;
+
     @GetMapping("/centros")
     public List<CentroSalud> getCentrosSalud() {
         return centroSaludRepository.findAll();
@@ -29,5 +32,10 @@ public class DataController {
     @GetMapping("/profesionales")
     public List<Profesional> getProfesionales() {
         return profesionalRepository.findAll();
+    }
+
+    @GetMapping("/usuarios")
+    public List<com.eps.hospital.model.Usuario> getUsuarios() {
+        return usuarioRepository.findAll();
     }
 }

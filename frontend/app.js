@@ -100,6 +100,9 @@ function showSection(sectionId) {
     if(sectionId === 'citas') loadCitas();
     if(sectionId === 'historial') loadHistorial();
     if(sectionId === 'facturas') loadFacturas();
+    if(sectionId === 'agenda-doc') loadAgendaDoc();
+    if(sectionId === 'pacientes-doc') loadPacientesDoc();
+    if(sectionId === 'admin') loadAdminPanel();
 }
 
 function logout() {
@@ -117,11 +120,19 @@ async function initDashboard() {
     document.getElementById('userGreeting').innerText = `Bienvenid@, ${name || email}`;
     document.getElementById('userRoleBadge').innerText = role;
 
-    // Si es Afiliado, cargamos centros y profesionales
+    // Control UI elements by role
+    document.querySelectorAll('.afiliado-only').forEach(el => el.style.display = role === 'AFILIADO' ? 'block' : 'none');
+    document.querySelectorAll('.profesional-only').forEach(el => el.style.display = role === 'PROFESIONAL' ? 'block' : 'none');
+    document.querySelectorAll('.admin-only').forEach(el => el.style.display = role === 'ADMINISTRATIVO' ? 'block' : 'none');
+
     if (role === 'AFILIADO') {
         loadCentros();
         loadProfesionales();
         loadCitasInicio();
+    } else if (role === 'PROFESIONAL') {
+        showSection('agenda-doc');
+    } else if (role === 'ADMINISTRATIVO') {
+        showSection('admin');
     }
 }
 
@@ -211,6 +222,247 @@ async function loadFacturas() {
         });
     } catch (e) { console.error(e); }
 }
+
+async function loadAgendaDoc() {
+    try {
+        const userId = localStorage.getItem('userId');
+        const res = await fetch(`${API_URL}/citas/profesional/${userId}`, { headers: getAuthHeader() });
+        const citas = await res.json();
+        const list = document.getElementById('listaAgendaDoc');
+        list.innerHTML = '';
+        if(citas.length === 0) list.innerHTML = '<li>No tienes citas pendientes</li>';
+        
+        citas.forEach(c => {
+            list.innerHTML += `<li><strong>Fecha:</strong> ${new Date(c.fechaHora).toLocaleString()} | <strong>Paciente:</strong> ${c.afiliado.usuario.nombre} | <strong>Estado:</strong> ${c.estado} 
+            ${c.estado === 'PROGRAMADA' ? `<button onclick="completarCita(${c.id})" class="btn-primary" style="padding: 5px 10px; font-size: 12px; margin-left: 10px;">Completar</button>` : ''}
+            </li>`;
+        });
+    } catch (e) { console.error(e); }
+}
+
+async function completarCita(citaId) {
+    try {
+        await fetch(`${API_URL}/citas/${citaId}/estado`, {
+            method: 'PUT',
+            headers: getAuthHeader(),
+            body: JSON.stringify({ estado: 'COMPLETADA' })
+        });
+        loadAgendaDoc();
+    } catch(e) { console.error(e); }
+}
+
+let pacienteSeleccionado = null;
+let historialActualId = null; // Para vincular la receta
+
+async function loadMedicamentosList() {
+    try {
+        const resMed = await fetch(`${API_URL}/recetas/medicamentos`, { headers: getAuthHeader() });
+        const medicamentos = await resMed.json();
+        const selMed = document.getElementById('selectMedicamento');
+        const prevVal = selMed.value;
+        selMed.innerHTML = '<option value="">Seleccione Medicamento...</option>';
+        medicamentos.forEach(m => selMed.innerHTML += `<option value="${m.id}">${m.nombre} - ${m.dosisRecomendada}</option>`);
+        if (prevVal) selMed.value = prevVal;
+    } catch(e) { console.error(e); }
+}
+
+async function loadPacientesDoc() {
+    try {
+        const userId = localStorage.getItem('userId');
+        const res = await fetch(`${API_URL}/citas/profesional/${userId}`, { headers: getAuthHeader() });
+        const citas = await res.json();
+        
+        // Extraer pacientes únicos
+        const pacientesMap = new Map();
+        citas.forEach(c => pacientesMap.set(c.afiliado.id, c.afiliado));
+        
+        const select = document.getElementById('selectPacienteDoc');
+        select.innerHTML = '<option value="">Seleccione Paciente...</option>';
+        pacientesMap.forEach(p => {
+            select.innerHTML += `<option value="${p.id}">${p.usuario.nombre}</option>`;
+        });
+
+        // Cargar catálogo de medicamentos
+        await loadMedicamentosList();
+
+        // Cargar profesionales y centros para remisión
+        const [resProf, resCen] = await Promise.all([
+            fetch(`${API_URL}/data/profesionales`, { headers: getAuthHeader() }),
+            fetch(`${API_URL}/data/centros`, { headers: getAuthHeader() })
+        ]);
+        
+        const profesionales = await resProf.json();
+        const centros = await resCen.json();
+        
+        const selProf = document.getElementById('selectProfRemision');
+        selProf.innerHTML = '<option value="">Seleccione Especialista...</option>';
+        profesionales.forEach(p => {
+            if (p.id != userId) {
+                selProf.innerHTML += `<option value="${p.id}">${p.usuario.nombre} - ${p.especialidad}</option>`;
+            }
+        });
+
+        const selCen = document.getElementById('selectCentroRemision');
+        selCen.innerHTML = '<option value="">Seleccione Centro...</option>';
+        centros.forEach(c => selCen.innerHTML += `<option value="${c.id}">${c.nombre} (${c.ciudad})</option>`);
+
+    } catch(e) { console.error(e); }
+}
+
+function seleccionarPaciente() {
+    const val = document.getElementById('selectPacienteDoc').value;
+    const panel = document.getElementById('panelAccionesPaciente');
+    if (val) {
+        pacienteSeleccionado = val;
+        panel.style.display = 'block';
+        historialActualId = null; // Reseteamos historial al cambiar de paciente
+    } else {
+        pacienteSeleccionado = null;
+        panel.style.display = 'none';
+    }
+}
+
+// Formulario de Historial Clínico
+if(document.getElementById('formHistorialDoc')) {
+    document.getElementById('formHistorialDoc').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const diagnostico = document.getElementById('diagHistorial').value;
+        const tratamiento = document.getElementById('tratHistorial').value;
+        const profId = localStorage.getItem('userId');
+        
+        const body = {
+            diagnostico,
+            tratamiento,
+            fecha: new Date().toISOString().split('T')[0],
+            afiliado: { id: pacienteSeleccionado },
+            profesional: { id: profId }
+        };
+
+        try {
+            const res = await fetch(`${API_URL}/historial`, {
+                method: 'POST',
+                headers: getAuthHeader(),
+                body: JSON.stringify(body)
+            });
+            if(res.ok) {
+                const data = await res.json();
+                historialActualId = data.id; // Lo guardamos para la receta
+                alert('Historial clínico guardado con éxito. Ahora puedes emitir recetas si lo deseas.');
+                document.getElementById('formHistorialDoc').reset();
+            } else { alert('Error al guardar historial'); }
+        } catch(e) { console.error(e); }
+    });
+}
+
+// Formulario de Receta Médica
+if(document.getElementById('formRecetaDoc')) {
+    document.getElementById('formRecetaDoc').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if(!historialActualId) {
+            alert('Debes crear un registro de historial clínico primero en esta sesión para vincular la receta.');
+            return;
+        }
+
+        const medicamentoId = document.getElementById('selectMedicamento').value;
+        const indicaciones = document.getElementById('indReceta').value;
+
+        const body = {
+            fechaEmision: new Date().toISOString().split('T')[0],
+            indicaciones,
+            historialClinico: { id: historialActualId },
+            medicamento: { id: medicamentoId }
+        };
+
+        try {
+            const res = await fetch(`${API_URL}/recetas`, {
+                method: 'POST',
+                headers: getAuthHeader(),
+                body: JSON.stringify(body)
+            });
+            if(res.ok) {
+                alert('Receta emitida correctamente.');
+                document.getElementById('formRecetaDoc').reset();
+            } else { alert('Error al emitir receta'); }
+        } catch(e) { console.error(e); }
+    });
+}
+
+// Formulario Nuevo Medicamento
+if (document.getElementById('formNuevoMed')) {
+    document.getElementById('formNuevoMed').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const body = {
+            nombre: document.getElementById('nuevoMedNombre').value,
+            descripcion: document.getElementById('nuevoMedDesc').value,
+            dosisRecomendada: document.getElementById('nuevoMedDosis').value
+        };
+
+        try {
+            const res = await fetch(`${API_URL}/recetas/medicamentos`, {
+                method: 'POST',
+                headers: getAuthHeader(),
+                body: JSON.stringify(body)
+            });
+            if(res.ok) {
+                const newMed = await res.json();
+                document.getElementById('modalNuevoMed').style.display = 'none';
+                document.getElementById('formNuevoMed').reset();
+                await loadMedicamentosList();
+                document.getElementById('selectMedicamento').value = newMed.id;
+                alert('Medicamento añadido al catálogo.');
+            } else { alert('Error al añadir medicamento'); }
+        } catch(e) { console.error(e); }
+    });
+}
+
+// Formulario Remisión
+if (document.getElementById('formRemisionDoc')) {
+    document.getElementById('formRemisionDoc').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if(!pacienteSeleccionado) return;
+
+        const body = {
+            afiliado: { id: pacienteSeleccionado },
+            profesional: { id: document.getElementById('selectProfRemision').value },
+            centroSalud: { id: document.getElementById('selectCentroRemision').value },
+            fechaHora: document.getElementById('fechaRemision').value
+        };
+
+        try {
+            const res = await fetch(`${API_URL}/citas`, {
+                method: 'POST',
+                headers: getAuthHeader(),
+                body: JSON.stringify(body)
+            });
+            if (res.ok) {
+                alert('Paciente remitido exitosamente (Cita Agendada).');
+                document.getElementById('formRemisionDoc').reset();
+            } else {
+                alert('Error al agendar la remisión');
+            }
+        } catch(e) { console.error(e); }
+    });
+}
+
+async function loadAdminPanel() {
+    try {
+        const resUsers = await fetch(`${API_URL}/data/usuarios`, { headers: getAuthHeader() });
+        const usuarios = await resUsers.json();
+        document.getElementById('totalUsuarios').innerText = usuarios.length;
+        
+        const list = document.getElementById('listaTodosUsuarios');
+        list.innerHTML = '';
+        usuarios.forEach(u => {
+            list.innerHTML += `<li><strong>Nombre:</strong> ${u.nombre} | <strong>Email:</strong> ${u.email} | <strong>Rol:</strong> ${u.rol}</li>`;
+        });
+        
+        const resCitas = await fetch(`${API_URL}/citas`, { headers: getAuthHeader() });
+        const citas = await resCitas.json();
+        document.getElementById('totalCitas').innerText = citas.length;
+        
+    } catch(e) { console.error(e); }
+}
+
 
 // Manejar Agendamiento
 if(document.getElementById('agendarCitaForm')) {
