@@ -30,6 +30,25 @@ public class RecetaController {
         return ResponseEntity.ok(medicamentoRepository.save(medicamento));
     }
 
+    @DeleteMapping("/medicamentos/{id}")
+    public ResponseEntity<?> eliminarMedicamento(@PathVariable Long id) {
+        if (!medicamentoRepository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        medicamentoRepository.deleteById(id);
+        return ResponseEntity.ok("Medicamento eliminado");
+    }
+
+    @PutMapping("/medicamentos/{id}")
+    public ResponseEntity<Medicamento> actualizarMedicamento(@PathVariable Long id, @RequestBody Medicamento medicamento) {
+        return medicamentoRepository.findById(id).map(m -> {
+            m.setNombre(medicamento.getNombre());
+            m.setDescripcion(medicamento.getDescripcion());
+            m.setDosisRecomendada(medicamento.getDosisRecomendada());
+            return ResponseEntity.ok(medicamentoRepository.save(m));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/historial/{id}")
     public List<RecetaMedica> getRecetasByHistorial(@PathVariable Long id) {
         return recetaMedicaRepository.findByHistorialClinicoId(id);
@@ -40,3 +59,4 @@ public class RecetaController {
         return ResponseEntity.ok(recetaMedicaRepository.save(recetaMedica));
     }
 }
+

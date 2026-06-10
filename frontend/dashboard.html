@@ -14,15 +14,25 @@
         <p class="user-role" id="userRoleBadge">Rol</p>
         
         <ul class="nav-menu">
-            <li><button onclick="showSection('inicio')" class="nav-btn active"><i class="fa-solid fa-house"></i> Inicio</button></li>
-            <li class="afiliado-only"><button onclick="showSection('citas')" class="nav-btn"><i class="fa-solid fa-calendar-check"></i> Mis Citas</button></li>
-            <li class="afiliado-only"><button onclick="showSection('historial')" class="nav-btn"><i class="fa-solid fa-notes-medical"></i> Historial Clínico</button></li>
-            <li class="afiliado-only"><button onclick="showSection('facturas')" class="nav-btn"><i class="fa-solid fa-file-invoice-dollar"></i> Facturación</button></li>
+            <li><button onclick="showSection('inicio')" class="nav-btn active" id="nav-inicio"><i class="fa-solid fa-house"></i> Inicio</button></li>
+
+            <!-- Afiliado -->
+            <li class="afiliado-only"><button onclick="showSection('citas')" class="nav-btn" id="nav-citas"><i class="fa-solid fa-calendar-check"></i> Mis Citas</button></li>
+            <li class="afiliado-only"><button onclick="showSection('historial')" class="nav-btn" id="nav-historial"><i class="fa-solid fa-notes-medical"></i> Historial Clínico</button></li>
+            <li class="afiliado-only"><button onclick="showSection('facturas')" class="nav-btn" id="nav-facturas"><i class="fa-solid fa-file-invoice-dollar"></i> Facturación</button></li>
             
-            <li class="profesional-only" style="display:none;"><button onclick="showSection('agenda-doc')" class="nav-btn"><i class="fa-solid fa-calendar-day"></i> Mi Agenda</button></li>
-            <li class="profesional-only" style="display:none;"><button onclick="showSection('pacientes-doc')" class="nav-btn"><i class="fa-solid fa-users"></i> Mis Pacientes</button></li>
+            <!-- Profesional -->
+            <li class="profesional-only" style="display:none;"><button onclick="showSection('agenda-doc')" class="nav-btn" id="nav-agenda-doc"><i class="fa-solid fa-calendar-day"></i> Mi Agenda</button></li>
+            <li class="profesional-only" style="display:none;"><button onclick="showSection('pacientes-doc')" class="nav-btn" id="nav-pacientes-doc"><i class="fa-solid fa-users"></i> Mis Pacientes</button></li>
             
-            <li class="admin-only" style="display:none;"><button onclick="showSection('admin')" class="nav-btn"><i class="fa-solid fa-chart-line"></i> Panel Admin</button></li>
+            <!-- Admin -->
+            <li class="admin-only" style="display:none;">
+                <div class="nav-group-label"><i class="fa-solid fa-shield-halved"></i> Administración</div>
+            </li>
+            <li class="admin-only" style="display:none;"><button onclick="showSection('admin-resumen')" class="nav-btn" id="nav-admin-resumen"><i class="fa-solid fa-chart-line"></i> Resumen</button></li>
+            <li class="admin-only" style="display:none;"><button onclick="showSection('admin-usuarios')" class="nav-btn" id="nav-admin-usuarios"><i class="fa-solid fa-users-gear"></i> Gestión de Usuarios</button></li>
+            <li class="admin-only" style="display:none;"><button onclick="showSection('admin-profesionales')" class="nav-btn" id="nav-admin-profesionales"><i class="fa-solid fa-user-doctor"></i> Profesionales</button></li>
+            <li class="admin-only" style="display:none;"><button onclick="showSection('admin-medicamentos')" class="nav-btn" id="nav-admin-medicamentos"><i class="fa-solid fa-pills"></i> Medicamentos</button></li>
         </ul>
         
         <button onclick="logout()" class="btn-secondary logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión</button>
@@ -35,6 +45,7 @@
 
         <div class="content-area">
             
+            <!-- INICIO -->
             <section id="sec-inicio" class="content-section active-section">
                 <div class="cards-grid">
                     <div class="card glass-panel">
@@ -48,21 +59,18 @@
                 </div>
             </section>
 
+            <!-- CITAS AFILIADO -->
             <section id="sec-citas" class="content-section hidden-section">
                 <div class="glass-panel">
                     <h2>Agendar Nueva Cita</h2>
                     <form id="agendarCitaForm" class="grid-form">
                         <div class="input-group">
                             <label>Especialidad/Profesional</label>
-                            <select id="selectProfesional" required>
-                                <option value="">Cargando...</option>
-                            </select>
+                            <select id="selectProfesional" required><option value="">Cargando...</option></select>
                         </div>
                         <div class="input-group">
                             <label>Centro de Salud</label>
-                            <select id="selectCentro" required>
-                                <option value="">Cargando...</option>
-                            </select>
+                            <select id="selectCentro" required><option value="">Cargando...</option></select>
                         </div>
                         <div class="input-group">
                             <label>Fecha y Hora</label>
@@ -71,13 +79,13 @@
                         <button type="submit" class="btn-primary">Agendar</button>
                     </form>
                 </div>
-                
                 <div class="glass-panel mt-20">
                     <h2>Historial de Citas</h2>
                     <ul id="listaCitas" class="data-list"></ul>
                 </div>
             </section>
 
+            <!-- HISTORIAL CLÍNICO -->
             <section id="sec-historial" class="content-section hidden-section">
                 <div class="glass-panel">
                     <h2>Mi Historial Clínico</h2>
@@ -85,6 +93,7 @@
                 </div>
             </section>
 
+            <!-- FACTURAS -->
             <section id="sec-facturas" class="content-section hidden-section">
                 <div class="glass-panel">
                     <h2>Mis Facturas</h2>
@@ -92,6 +101,7 @@
                 </div>
             </section>
 
+            <!-- AGENDA DOCTOR -->
             <section id="sec-agenda-doc" class="content-section hidden-section">
                 <div class="glass-panel">
                     <h2><i class="fa-solid fa-calendar-day"></i> Citas Pendientes</h2>
@@ -99,6 +109,7 @@
                 </div>
             </section>
 
+            <!-- PACIENTES DOCTOR -->
             <section id="sec-pacientes-doc" class="content-section hidden-section">
                 <div class="glass-panel">
                     <h2><i class="fa-solid fa-users"></i> Mis Pacientes</h2>
@@ -110,9 +121,7 @@
                     </div>
 
                     <div id="panelAccionesPaciente" style="display:none; margin-top: 2rem;">
-                        
                         <div class="cards-grid">
-                            <!-- Formulario de Historial -->
                             <div class="card glass-panel" style="background: rgba(255,255,255,0.02)">
                                 <h3><i class="fa-solid fa-notes-medical"></i> Nuevo Historial</h3>
                                 <form id="formHistorialDoc" class="grid-form" style="margin-top: 1rem;">
@@ -128,44 +137,36 @@
                                 </form>
                             </div>
 
-                            <!-- Formulario de Receta -->
                             <div class="card glass-panel" style="background: rgba(255,255,255,0.02)">
                                 <h3><i class="fa-solid fa-prescription-bottle-medical"></i> Emitir Receta</h3>
-                                <p class="text-muted" style="margin-bottom: 1rem; font-size: 0.85rem; color: #94a3b8;">(Requiere tener un historial clínico previo con el paciente)</p>
+                                <p style="margin-bottom: 1rem; font-size: 0.85rem; color: #94a3b8;">(Requiere historial clínico previo en esta sesión)</p>
                                 <form id="formRecetaDoc" class="grid-form">
                                     <div class="input-group">
                                         <label>Medicamento</label>
                                         <div style="display: flex; gap: 0.5rem;">
-                                            <select id="selectMedicamento" required style="flex: 1;">
-                                                <option value="">Cargando catálogo...</option>
-                                            </select>
-                                            <button type="button" class="btn-secondary" onclick="document.getElementById('modalNuevoMed').style.display='block'" style="padding: 0 1rem; font-size: 0.8rem;"><i class="fa-solid fa-plus"></i></button>
+                                            <select id="selectMedicamento" required style="flex: 1;"><option value="">Cargando catálogo...</option></select>
+                                            <button type="button" class="btn-secondary" onclick="document.getElementById('modalNuevoMed').style.display='flex'" style="padding: 0 1rem; font-size: 0.8rem;"><i class="fa-solid fa-plus"></i></button>
                                         </div>
                                     </div>
                                     <div class="input-group">
-                                        <label>Indicaciones (Dosis, frecuencia)</label>
+                                        <label>Indicaciones</label>
                                         <textarea id="indReceta" required rows="3" style="width:100%; border-radius:8px; padding:0.75rem; background:rgba(0,0,0,0.2); border:1px solid var(--glass-border); color:#fff;"></textarea>
                                     </div>
                                     <button type="submit" class="btn-primary" style="width: 100%; background: #10b981;"><i class="fa-solid fa-file-prescription"></i> Guardar Receta</button>
                                 </form>
                             </div>
                             
-                            <!-- Formulario de Remisión -->
                             <div class="card glass-panel" style="background: rgba(255,255,255,0.02)">
                                 <h3><i class="fa-solid fa-user-doctor"></i> Remitir Paciente</h3>
-                                <p class="text-muted" style="margin-bottom: 1rem; font-size: 0.85rem; color: #94a3b8;">Agendar nueva cita con especialista</p>
+                                <p style="margin-bottom: 1rem; font-size: 0.85rem; color: #94a3b8;">Agendar nueva cita con especialista</p>
                                 <form id="formRemisionDoc" class="grid-form">
                                     <div class="input-group">
                                         <label>Especialidad/Profesional</label>
-                                        <select id="selectProfRemision" required>
-                                            <option value="">Cargando...</option>
-                                        </select>
+                                        <select id="selectProfRemision" required><option value="">Cargando...</option></select>
                                     </div>
                                     <div class="input-group">
                                         <label>Centro de Salud</label>
-                                        <select id="selectCentroRemision" required>
-                                            <option value="">Cargando...</option>
-                                        </select>
+                                        <select id="selectCentroRemision" required><option value="">Cargando...</option></select>
                                     </div>
                                     <div class="input-group">
                                         <label>Fecha y Hora</label>
@@ -174,17 +175,15 @@
                                     <button type="submit" class="btn-primary" style="width: 100%;"><i class="fa-solid fa-calendar-plus"></i> Agendar Remisión</button>
                                 </form>
                             </div>
-
                         </div>
-
                     </div>
                 </div>
             </section>
 
-            <!-- Modal Nuevo Medicamento -->
-            <div id="modalNuevoMed" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
-                <div class="glass-panel" style="width: 400px; background: var(--bg-gradient-1);">
-                    <h3>Añadir Nuevo Medicamento</h3>
+            <!-- MODAL NUEVO MEDICAMENTO (Profesional) -->
+            <div id="modalNuevoMed" class="modal-overlay">
+                <div class="modal-box glass-panel">
+                    <h3><i class="fa-solid fa-pills"></i> Añadir Medicamento</h3>
                     <form id="formNuevoMed" style="margin-top: 1rem;">
                         <div class="input-group" style="margin-bottom: 1rem;">
                             <label>Nombre del Medicamento</label>
@@ -206,25 +205,239 @@
                 </div>
             </div>
 
-            <section id="sec-admin" class="content-section hidden-section">
-                <div class="glass-panel">
-                    <h2>Estadísticas</h2>
-                    <div class="cards-grid">
-                        <div class="card glass-panel"><h3>Total Usuarios</h3><p id="totalUsuarios">0</p></div>
-                        <div class="card glass-panel"><h3>Total Citas</h3><p id="totalCitas">0</p></div>
+            <!-- ===================== ADMIN SECTIONS ===================== -->
+
+            <!-- ADMIN: RESUMEN -->
+            <section id="sec-admin-resumen" class="content-section hidden-section">
+                <div class="admin-stats-grid">
+                    <div class="stat-card glass-panel">
+                        <div class="stat-icon" style="background: linear-gradient(135deg,#4F46E5,#7C3AED)"><i class="fa-solid fa-users"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Total Usuarios</span>
+                            <span class="stat-value" id="totalUsuarios">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-panel">
+                        <div class="stat-icon" style="background: linear-gradient(135deg,#10b981,#059669)"><i class="fa-solid fa-user-shield"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Afiliados Activos</span>
+                            <span class="stat-value" id="totalAfiliados">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-panel">
+                        <div class="stat-icon" style="background: linear-gradient(135deg,#B45309,#F59E0B)"><i class="fa-solid fa-user-doctor"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Profesionales</span>
+                            <span class="stat-value" id="totalProfesionales">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-panel">
+                        <div class="stat-icon" style="background: linear-gradient(135deg,#BE123C,#F43F5E)"><i class="fa-solid fa-pills"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Medicamentos</span>
+                            <span class="stat-value" id="totalMedicamentos">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-panel">
+                        <div class="stat-icon" style="background: linear-gradient(135deg,#06b6d4,#0891b2)"><i class="fa-solid fa-calendar"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Total Citas</span>
+                            <span class="stat-value" id="totalCitas">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-panel">
+                        <div class="stat-icon" style="background: linear-gradient(135deg,#3b82f6,#2563eb)"><i class="fa-solid fa-calendar-day"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Citas Programadas</span>
+                            <span class="stat-value" id="citasProgramadas">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-panel">
+                        <div class="stat-icon" style="background: linear-gradient(135deg,#10b981,#047857)"><i class="fa-solid fa-calendar-check"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Citas Completadas</span>
+                            <span class="stat-value" id="citasCompletadas">0</span>
+                        </div>
                     </div>
                 </div>
+                
                 <div class="glass-panel mt-20">
-                    <h2>Directorio de Usuarios</h2>
-                    <ul id="listaTodosUsuarios" class="data-list"></ul>
+                    <h2><i class="fa-solid fa-clock-rotate-left"></i> Citas Recientes</h2>
+                    <div id="tablaResumenCitas" class="admin-table-wrap"></div>
+                </div>
+
+                <div class="glass-panel mt-20">
+                    <h2><i class="fa-solid fa-list-ul"></i> Todos los Usuarios</h2>
+                    <div id="tablaResumenUsuarios" class="admin-table-wrap"></div>
+                </div>
+            </section>
+
+            <!-- ADMIN: GESTIÓN DE USUARIOS -->
+            <section id="sec-admin-usuarios" class="content-section hidden-section">
+                <div class="glass-panel mb-20">
+                    <div class="section-header-row">
+                        <h2><i class="fa-solid fa-users-gear"></i> Gestión de Usuarios</h2>
+                        <button class="btn-primary btn-sm" onclick="toggleFormNuevoUsuario()">
+                            <i class="fa-solid fa-user-plus"></i> Nuevo Usuario
+                        </button>
+                    </div>
+
+                    <div id="formNuevoUsuarioWrap" class="collapsible-form" style="display:none;">
+                        <div class="form-divider"></div>
+                        <form id="formNuevoUsuario" class="inline-form">
+                            <div class="input-group">
+                                <label>Nombre Completo</label>
+                                <input type="text" id="nuUsuNombre" required placeholder="Ej: Dr. Juan Pérez">
+                            </div>
+                            <div class="input-group">
+                                <label>Email</label>
+                                <input type="email" id="nuUsuEmail" required placeholder="usuario@eps.com">
+                            </div>
+                            <div class="input-group">
+                                <label>Contraseña</label>
+                                <input type="password" id="nuUsuPassword" required placeholder="Contraseña segura">
+                            </div>
+                            <div class="input-group">
+                                <label>Rol</label>
+                                <select id="nuUsuRol" required>
+                                    <option value="AFILIADO">Afiliado</option>
+                                    <option value="PROFESIONAL">Profesional</option>
+                                    <option value="ADMINISTRATIVO">Administrativo</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn-primary" style="align-self:flex-end;">
+                                <i class="fa-solid fa-save"></i> Crear Usuario
+                            </button>
+                        </form>
+                        <p id="msgNuevoUsuario" class="form-msg"></p>
+                    </div>
+                </div>
+
+                <div class="glass-panel">
+                    <div class="table-search-row">
+                        <input type="text" id="buscarUsuario" placeholder="🔍 Buscar usuario por nombre o email..." oninput="filtrarTablaUsuarios()" class="search-input">
+                    </div>
+                    <div id="tablaUsuarios" class="admin-table-wrap"></div>
+                </div>
+            </section>
+
+            <!-- ADMIN: PROFESIONALES -->
+            <section id="sec-admin-profesionales" class="content-section hidden-section">
+                <div class="glass-panel">
+                    <h2><i class="fa-solid fa-user-doctor"></i> Directorio de Profesionales</h2>
+                    <div class="table-search-row">
+                        <input type="text" id="buscarProfesional" placeholder="🔍 Buscar por nombre o especialidad..." oninput="filtrarTablaProfesionales()" class="search-input">
+                    </div>
+                    <div id="tablaProfesionales" class="admin-table-wrap"></div>
+                </div>
+            </section>
+
+            <!-- ADMIN: MEDICAMENTOS -->
+            <section id="sec-admin-medicamentos" class="content-section hidden-section">
+                <div class="glass-panel mb-20">
+                    <div class="section-header-row">
+                        <h2><i class="fa-solid fa-pills"></i> Catálogo de Medicamentos</h2>
+                        <button class="btn-primary btn-sm" onclick="toggleFormNuevoMed()">
+                            <i class="fa-solid fa-plus"></i> Nuevo Medicamento
+                        </button>
+                    </div>
+
+                    <div id="formNuevoMedAdminWrap" class="collapsible-form" style="display:none;">
+                        <div class="form-divider"></div>
+                        <form id="formNuevoMedAdmin" class="inline-form">
+                            <div class="input-group">
+                                <label>Nombre</label>
+                                <input type="text" id="adminMedNombre" required placeholder="Ej: Ibuprofeno 400mg">
+                            </div>
+                            <div class="input-group">
+                                <label>Descripción</label>
+                                <input type="text" id="adminMedDesc" required placeholder="Categoría o uso principal">
+                            </div>
+                            <div class="input-group">
+                                <label>Dosis Recomendada</label>
+                                <input type="text" id="adminMedDosis" required placeholder="Ej: 1 tableta cada 8 horas">
+                            </div>
+                            <button type="submit" class="btn-primary" style="align-self:flex-end;">
+                                <i class="fa-solid fa-save"></i> Agregar
+                            </button>
+                        </form>
+                        <p id="msgNuevoMed" class="form-msg"></p>
+                    </div>
+                </div>
+
+                <div class="glass-panel">
+                    <div class="table-search-row">
+                        <input type="text" id="buscarMedicamento" placeholder="🔍 Buscar medicamento..." oninput="filtrarTablaMedicamentos()" class="search-input">
+                    </div>
+                    <div id="tablaMedicamentos" class="admin-table-wrap"></div>
                 </div>
             </section>
 
         </div>
     </main>
+
+    <!-- MODAL EDITAR USUARIO -->
+    <div id="modalEditUsuario" class="modal-overlay">
+        <div class="modal-box glass-panel">
+            <h3><i class="fa-solid fa-user-pen"></i> Editar Usuario</h3>
+            <form id="formEditUsuario" style="margin-top: 1rem;">
+                <input type="hidden" id="editUsuId">
+                <div class="input-group" style="margin-bottom: 1rem;">
+                    <label>Nombre Completo</label>
+                    <input type="text" id="editUsuNombre" required>
+                </div>
+                <div class="input-group" style="margin-bottom: 1rem;">
+                    <label>Email</label>
+                    <input type="email" id="editUsuEmail" required>
+                </div>
+                <div class="input-group" style="margin-bottom: 1rem;">
+                    <label>Contraseña (dejar en blanco para conservar actual)</label>
+                    <input type="password" id="editUsuPassword" placeholder="Nueva contraseña o vacío">
+                </div>
+                <div class="input-group" style="margin-bottom: 1rem;">
+                    <label>Rol</label>
+                    <select id="editUsuRol" required>
+                        <option value="AFILIADO">Afiliado</option>
+                        <option value="PROFESIONAL">Profesional</option>
+                        <option value="ADMINISTRATIVO">Administrativo</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="button" class="btn-secondary" style="flex:1;" onclick="cerrarModalEditarUsuario()">Cancelar</button>
+                    <button type="submit" class="btn-primary" style="flex:1;">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL EDITAR MEDICAMENTO -->
+    <div id="modalEditMedicamento" class="modal-overlay">
+        <div class="modal-box glass-panel">
+            <h3><i class="fa-solid fa-pills"></i> Editar Medicamento</h3>
+            <form id="formEditMedicamento" style="margin-top: 1rem;">
+                <input type="hidden" id="editMedId">
+                <div class="input-group" style="margin-bottom: 1rem;">
+                    <label>Nombre del Medicamento</label>
+                    <input type="text" id="editMedNombre" required>
+                </div>
+                <div class="input-group" style="margin-bottom: 1rem;">
+                    <label>Descripción</label>
+                    <input type="text" id="editMedDesc" required>
+                </div>
+                <div class="input-group" style="margin-bottom: 1rem;">
+                    <label>Dosis Recomendada Estándar</label>
+                    <input type="text" id="editMedDosis" required placeholder="Ej: 500mg cada 8 horas">
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="button" class="btn-secondary" style="flex:1;" onclick="cerrarModalEditarMedicamento()">Cancelar</button>
+                    <button type="submit" class="btn-primary" style="flex:1;">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="app.js"></script>
     <script>
-        // Check si está autenticado
         if (!localStorage.getItem('token')) {
             window.location.href = 'index.html';
         }

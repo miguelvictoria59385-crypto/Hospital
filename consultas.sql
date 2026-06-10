@@ -1,156 +1,37 @@
--- ==========================================================
--- CONSULTAS SQL PARA EL SISTEMA DE GESTIÓN EPS (HOSPITAL)
--- ==========================================================
+# Consultas SQL para Sistema de Gestión EPS
 
-USE eps_hospital;
-
--- ----------------------------------------------------------
 -- 1. Citas próximas de un afiliado (Por ejemplo, afiliado_id = 1)
--- ----------------------------------------------------------
-SELECT 
-    c.id AS cita_id, 
-    c.fecha_hora, 
-    p.especialidad, 
-    u.nombre AS medico, 
-    cs.nombre AS centro_salud,
-    c.estado
+SELECT c.id AS cita_id, c.fecha_hora, p.especialidad, u.nombre AS medico, cs.nombre AS centro_salud
 FROM cita c
 JOIN profesional p ON c.profesional_id = p.id
 JOIN usuario u ON p.usuario_id = u.id
 JOIN centro_salud cs ON c.centro_salud_id = cs.id
-WHERE c.afiliado_id = 1 AND c.estado = 'PROGRAMADA' AND c.fecha_hora > NOW()
+WHERE c.afiliado_id = 1 AND c.fecha_hora > NOW()
 ORDER BY c.fecha_hora ASC;
 
-
--- ----------------------------------------------------------
 -- 2. Diagnósticos frecuentes por especialidad médica
--- ----------------------------------------------------------
-SELECT 
-    p.especialidad, 
-    h.diagnostico, 
-    COUNT(h.id) AS frecuencia
+SELECT p.especialidad, h.diagnostico, COUNT(h.id) AS frecuencia
 FROM historial_clinico h
 JOIN profesional p ON h.profesional_id = p.id
 GROUP BY p.especialidad, h.diagnostico
 ORDER BY p.especialidad, frecuencia DESC;
 
-
--- ----------------------------------------------------------
 -- 3. Afiliados con facturas pendientes
--- ----------------------------------------------------------
-SELECT 
-    a.id AS afiliado_id, 
-    u.nombre AS afiliado_nombre, 
-    u.email, 
-    f.monto, 
-    f.fecha_emision
+SELECT a.id AS afiliado_id, u.nombre, u.email, f.monto, f.fecha_emision
 FROM factura f
 JOIN afiliado a ON f.afiliado_id = a.id
 JOIN usuario u ON a.usuario_id = u.id
 WHERE f.estado_pago = 'PENDIENTE';
 
-
--- ----------------------------------------------------------
 -- 4. Facturación total por plan de salud
--- ----------------------------------------------------------
-SELECT 
-    a.plan_salud, 
-    SUM(f.monto) AS facturacion_total
+SELECT a.plan_salud, SUM(f.monto) AS facturacion_total
 FROM factura f
 JOIN afiliado a ON f.afiliado_id = a.id
 GROUP BY a.plan_salud;
 
-
--- ----------------------------------------------------------
 -- 5. Centros más utilizados para citas
--- ----------------------------------------------------------
-SELECT 
-    cs.nombre AS centro_salud, 
-    COUNT(c.id) AS total_citas
+SELECT cs.nombre AS centro_salud, COUNT(c.id) AS total_citas
 FROM cita c
 JOIN centro_salud cs ON c.centro_salud_id = cs.id
 GROUP BY cs.id, cs.nombre
 ORDER BY total_citas DESC;
-
-
--- ----------------------------------------------------------
--- 6. Historial clínico detallado de un paciente (Por ejemplo, afiliado_id = 1)
--- ----------------------------------------------------------
-SELECT 
-    hc.fecha AS fecha_consulta,
-    u_med.nombre AS medico_tratante,
-    prof.especialidad,
-    hc.diagnostico,
-    hc.tratamiento,
-    m.nombre AS medicamento_recetado,
-    rm.indicaciones
-FROM historial_clinico hc
-JOIN profesional prof ON hc.profesional_id = prof.id
-JOIN usuario u_med ON prof.usuario_id = u_med.id
-LEFT JOIN receta_medica rm ON rm.historial_clinico_id = hc.id
-LEFT JOIN medicamento m ON rm.medicamento_id = m.id
-WHERE hc.afiliado_id = 1
-ORDER BY hc.fecha DESC;
-
-
--- ----------------------------------------------------------
--- 7. Medicamentos más frecuentemente recetados
--- ----------------------------------------------------------
-SELECT 
-    m.nombre AS medicamento,
-    m.descripcion,
-    COUNT(rm.id) AS total_veces_recetado
-FROM receta_medica rm
-JOIN medicamento m ON rm.medicamento_id = m.id
-GROUP BY m.id, m.nombre, m.descripcion
-ORDER BY total_veces_recetado DESC;
-
-
--- ----------------------------------------------------------
--- 8. Resumen de facturación por afiliado (Total pagado vs total pendiente)
--- ----------------------------------------------------------
-SELECT 
-    a.id AS afiliado_id,
-    u.nombre AS afiliado_nombre,
-    a.plan_salud,
-    SUM(CASE WHEN f.estado_pago = 'PAGADA' THEN f.monto ELSE 0 END) AS total_pagado,
-    SUM(CASE WHEN f.estado_pago = 'PENDIENTE' THEN f.monto ELSE 0 END) AS total_pendiente,
-    SUM(f.monto) AS total_facturado
-FROM afiliado a
-JOIN usuario u ON a.usuario_id = u.id
-LEFT JOIN factura f ON f.afiliado_id = a.id
-GROUP BY a.id, u.nombre, a.plan_salud
-ORDER BY total_pendiente DESC;
-
-
--- ----------------------------------------------------------
--- 9. Distribución de afiliados por rangos de edad
--- ----------------------------------------------------------
-SELECT 
-    CASE 
-        WHEN TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) < 18 THEN 'Niños y Adolescentes (<18)'
-        WHEN TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) BETWEEN 18 AND 34 THEN 'Jóvenes Adultos (18-34)'
-        WHEN TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) BETWEEN 35 AND 64 THEN 'Adultos (35-64)'
-        ELSE 'Adultos Mayores (65+)'
-    END AS grupo_etario,
-    COUNT(*) AS cantidad_afiliados
-FROM afiliado
-GROUP BY grupo_etario
-ORDER BY cantidad_afiliados DESC;
-
-
--- ----------------------------------------------------------
--- 10. Pacientes sin citas programadas (Control preventivo)
--- ----------------------------------------------------------
-SELECT 
-    a.id AS afiliado_id,
-    u.nombre AS paciente,
-    u.email,
-    a.telefono
-FROM afiliado a
-JOIN usuario u ON a.usuario_id = u.id
-WHERE a.id NOT IN (
-    SELECT DISTINCT afiliado_id 
-    FROM cita 
-    WHERE estado = 'PROGRAMADA' AND fecha_hora >= NOW()
-);

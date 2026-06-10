@@ -84,17 +84,23 @@ if(document.getElementById('registerForm')) {
 }
 
 // Dashboard Functions
-function showSection(sectionId) {
+function showSection(sectionId, fromInit = false) {
     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.content-section').forEach(sec => {
         sec.classList.remove('active-section');
         sec.classList.add('hidden-section');
     });
 
-    event.target.classList.add('active');
+    // Activate matching nav button
+    const navBtn = document.getElementById('nav-' + sectionId);
+    if (navBtn) navBtn.classList.add('active');
+    else if (!fromInit && event && event.target) event.target.classList.add('active');
+
     const targetSection = document.getElementById('sec-' + sectionId);
-    targetSection.classList.remove('hidden-section');
-    targetSection.classList.add('active-section');
+    if (targetSection) {
+        targetSection.classList.remove('hidden-section');
+        targetSection.classList.add('active-section');
+    }
     
     // Load Data
     if(sectionId === 'citas') loadCitas();
@@ -102,7 +108,10 @@ function showSection(sectionId) {
     if(sectionId === 'facturas') loadFacturas();
     if(sectionId === 'agenda-doc') loadAgendaDoc();
     if(sectionId === 'pacientes-doc') loadPacientesDoc();
-    if(sectionId === 'admin') loadAdminPanel();
+    if(sectionId === 'admin-resumen') loadAdminResumen();
+    if(sectionId === 'admin-usuarios') loadAdminUsuarios();
+    if(sectionId === 'admin-profesionales') loadAdminProfesionales();
+    if(sectionId === 'admin-medicamentos') loadAdminMedicamentos();
 }
 
 function logout() {
@@ -130,9 +139,9 @@ async function initDashboard() {
         loadProfesionales();
         loadCitasInicio();
     } else if (role === 'PROFESIONAL') {
-        showSection('agenda-doc');
+        showSection('agenda-doc', true);
     } else if (role === 'ADMINISTRATIVO') {
-        showSection('admin');
+        showSection('admin-resumen', true);
     }
 }
 
@@ -444,24 +453,302 @@ if (document.getElementById('formRemisionDoc')) {
     });
 }
 
-async function loadAdminPanel() {
+// ==================== ADMIN FUNCTIONS ====================
+
+// ---------- RESUMEN ----------
+let _adminUsuariosCache = [];
+let _adminProfesionalesCache = [];
+let _adminMedicamentosCache = [];
+
+async function loadAdminResumen() {
     try {
-        const resUsers = await fetch(`${API_URL}/data/usuarios`, { headers: getAuthHeader() });
+        const [resUsers, resCitas, resProfs, resMeds] = await Promise.all([
+            fetch(`${API_URL}/data/usuarios`, { headers: getAuthHeader() }),
+            fetch(`${API_URL}/citas`, { headers: getAuthHeader() }),
+            fetch(`${API_URL}/data/profesionales`, { headers: getAuthHeader() }),
+            fetch(`${API_URL}/recetas/medicamentos`, { headers: getAuthHeader() })
+        ]);
         const usuarios = await resUsers.json();
+        const citas    = await resCitas.json();
+        const profs    = await resProfs.json();
+        const meds     = await resMeds.json();
+
+        // Calcular estadísticas
+        const afiliadosActivos = usuarios.filter(u => u.rol === 'AFILIADO').length;
+        const programadas = citas.filter(c => c.estado === 'PROGRAMADA').length;
+        const completadas = citas.filter(c => c.estado === 'COMPLETADA').length;
+
         document.getElementById('totalUsuarios').innerText = usuarios.length;
-        
-        const list = document.getElementById('listaTodosUsuarios');
-        list.innerHTML = '';
-        usuarios.forEach(u => {
-            list.innerHTML += `<li><strong>Nombre:</strong> ${u.nombre} | <strong>Email:</strong> ${u.email} | <strong>Rol:</strong> ${u.rol}</li>`;
-        });
-        
-        const resCitas = await fetch(`${API_URL}/citas`, { headers: getAuthHeader() });
-        const citas = await resCitas.json();
+        document.getElementById('totalAfiliados').innerText = afiliadosActivos;
+        document.getElementById('totalProfesionales').innerText = profs.length;
+        document.getElementById('totalMedicamentos').innerText = meds.length;
         document.getElementById('totalCitas').innerText = citas.length;
+        document.getElementById('citasProgramadas').innerText = programadas;
+        document.getElementById('citasCompletadas').innerText = completadas;
+
+        // Citas recientes (ordenadas de más reciente a más antigua)
+        const citasOrdenadas = [...citas].sort((a, b) => new Date(b.fechaHora) - new Date(a.fechaHora));
+        const citasRecientes = citasOrdenadas.slice(0, 5);
         
+        renderTablaResumenCitas(citasRecientes);
+        renderTablaUsuarios('tablaResumenUsuarios', usuarios, false);
     } catch(e) { console.error(e); }
 }
+
+function renderTablaResumenCitas(citas) {
+    const wrap = document.getElementById('tablaResumenCitas');
+    if (!citas.length) {
+        wrap.innerHTML = `<div class="empty-state"><i class="fa-solid fa-calendar-xmark"></i><p>No hay citas registradas.</p></div>`;
+        return;
+    }
+    let html = `<table class="admin-table">
+        <thead><tr>
+            <th>Fecha y Hora</th><th>Paciente</th><th>Médico / Especialidad</th><th>Estado</th>
+        </tr></thead><tbody>`;
+    citas.forEach(c => {
+        const pacienteNom = c.afiliado && c.afiliado.usuario ? c.afiliado.usuario.nombre : 'Desconocido';
+        const medicoNom = c.profesional && c.profesional.usuario ? `Dr. ${c.profesional.usuario.nombre} (${c.profesional.especialidad})` : 'Desconocido';
+        const estadoClase = c.estado === 'COMPLETADA' ? 'role-AFILIADO' : (c.estado === 'CANCELADA' ? 'btn-danger' : 'role-PROFESIONAL');
+        html += `<tr>
+            <td>${new Date(c.fechaHora).toLocaleString()}</td>
+            <td>${pacienteNom}</td>
+            <td>${medicoNom}</td>
+            <td><span class="role-badge ${estadoClase}">${c.estado}</span></td>
+        </tr>`;
+    });
+    html += `</tbody></table>`;
+    wrap.innerHTML = html;
+}
+
+// ---------- USUARIOS ----------
+async function loadAdminUsuarios() {
+    try {
+        const res = await fetch(`${API_URL}/data/usuarios`, { headers: getAuthHeader() });
+        _adminUsuariosCache = await res.json();
+        renderTablaUsuarios('tablaUsuarios', _adminUsuariosCache, true);
+    } catch(e) { console.error(e); }
+}
+
+function filtrarTablaUsuarios() {
+    const q = document.getElementById('buscarUsuario').value.toLowerCase();
+    const filtered = _adminUsuariosCache.filter(u =>
+        u.nombre.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+    );
+    renderTablaUsuarios('tablaUsuarios', filtered, true);
+}
+
+function renderTablaUsuarios(containerId, usuarios, conAcciones) {
+    const wrap = document.getElementById(containerId);
+    if (!usuarios.length) {
+        wrap.innerHTML = `<div class="empty-state"><i class="fa-solid fa-users-slash"></i><p>No se encontraron usuarios.</p></div>`;
+        return;
+    }
+    let html = `<table class="admin-table">
+        <thead><tr>
+            <th>#</th><th>Nombre</th><th>Email</th><th>Rol</th>
+            ${conAcciones ? '<th>Acciones</th>' : ''}
+        </tr></thead><tbody>`;
+    usuarios.forEach(u => {
+        html += `<tr>
+            <td>${u.id}</td>
+            <td>${u.nombre}</td>
+            <td>${u.email}</td>
+            <td><span class="role-badge role-${u.rol}">${u.rol}</span></td>
+            ${conAcciones ? `<td>
+                <button class="btn-secondary btn-sm" onclick="abrirModalEditarUsuario(${u.id})" style="padding: 0.4rem 0.85rem; font-size: 0.8rem; margin-right: 0.5rem;"><i class="fa-solid fa-pen-to-square"></i> Editar</button>
+                <button class="btn-danger" onclick="eliminarUsuario(${u.id}, '${u.nombre}')"><i class="fa-solid fa-trash"></i> Eliminar</button>
+            </td>` : ''}
+        </tr>`;
+    });
+    html += `</tbody></table>`;
+    wrap.innerHTML = html;
+}
+
+async function eliminarUsuario(id, nombre) {
+    if (!confirm(`¿Seguro que quieres eliminar a "${nombre}"? Esta acción no se puede deshacer.`)) return;
+    try {
+        const res = await fetch(`${API_URL}/data/usuarios/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeader()
+        });
+        if (res.ok) {
+            loadAdminUsuarios();
+        } else {
+            alert('No se pudo eliminar el usuario. Puede tener datos asociados.');
+        }
+    } catch(e) { console.error(e); }
+}
+
+function toggleFormNuevoUsuario() {
+    const wrap = document.getElementById('formNuevoUsuarioWrap');
+    wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+}
+
+if (document.getElementById('formNuevoUsuario')) {
+    document.getElementById('formNuevoUsuario').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById('msgNuevoUsuario');
+        const body = {
+            nombre:   document.getElementById('nuUsuNombre').value,
+            email:    document.getElementById('nuUsuEmail').value,
+            password: document.getElementById('nuUsuPassword').value,
+            rol:      document.getElementById('nuUsuRol').value
+        };
+        try {
+            const res = await fetch(`${API_URL}/data/usuarios`, {
+                method: 'POST',
+                headers: getAuthHeader(),
+                body: JSON.stringify(body)
+            });
+            if (res.ok) {
+                msg.style.color = '#10b981';
+                msg.innerText = '✅ Usuario creado exitosamente.';
+                document.getElementById('formNuevoUsuario').reset();
+                loadAdminUsuarios();
+                setTimeout(() => { msg.innerText = ''; }, 3000);
+            } else {
+                const err = await res.text();
+                msg.style.color = '#ef4444';
+                msg.innerText = '❌ ' + err;
+            }
+        } catch(e) { msg.style.color = '#ef4444'; msg.innerText = 'Error de conexión.'; }
+    });
+}
+
+// ---------- PROFESIONALES ----------
+async function loadAdminProfesionales() {
+    try {
+        const res = await fetch(`${API_URL}/data/profesionales`, { headers: getAuthHeader() });
+        _adminProfesionalesCache = await res.json();
+        renderTablaProfesionales(_adminProfesionalesCache);
+    } catch(e) { console.error(e); }
+}
+
+function filtrarTablaProfesionales() {
+    const q = document.getElementById('buscarProfesional').value.toLowerCase();
+    const filtered = _adminProfesionalesCache.filter(p =>
+        p.usuario.nombre.toLowerCase().includes(q) ||
+        (p.especialidad && p.especialidad.toLowerCase().includes(q))
+    );
+    renderTablaProfesionales(filtered);
+}
+
+function renderTablaProfesionales(profs) {
+    const wrap = document.getElementById('tablaProfesionales');
+    if (!profs.length) {
+        wrap.innerHTML = `<div class="empty-state"><i class="fa-solid fa-user-doctor"></i><p>No se encontraron profesionales.</p></div>`;
+        return;
+    }
+    let html = `<table class="admin-table">
+        <thead><tr><th>#</th><th>Nombre</th><th>Email</th><th>Especialidad</th><th>Centro de Salud</th></tr></thead>
+        <tbody>`;
+    profs.forEach(p => {
+        html += `<tr>
+            <td>${p.id}</td>
+            <td>${p.usuario.nombre}</td>
+            <td>${p.usuario.email}</td>
+            <td>${p.especialidad || '—'}</td>
+            <td>${p.centroSalud ? p.centroSalud.nombre : '—'}</td>
+        </tr>`;
+    });
+    html += `</tbody></table>`;
+    wrap.innerHTML = html;
+}
+
+// ---------- MEDICAMENTOS ----------
+async function loadAdminMedicamentos() {
+    try {
+        const res = await fetch(`${API_URL}/recetas/medicamentos`, { headers: getAuthHeader() });
+        _adminMedicamentosCache = await res.json();
+        renderTablaMedicamentos(_adminMedicamentosCache);
+    } catch(e) { console.error(e); }
+}
+
+function filtrarTablaMedicamentos() {
+    const q = document.getElementById('buscarMedicamento').value.toLowerCase();
+    const filtered = _adminMedicamentosCache.filter(m =>
+        m.nombre.toLowerCase().includes(q) ||
+        m.descripcion.toLowerCase().includes(q)
+    );
+    renderTablaMedicamentos(filtered);
+}
+
+function renderTablaMedicamentos(meds) {
+    const wrap = document.getElementById('tablaMedicamentos');
+    if (!meds.length) {
+        wrap.innerHTML = `<div class="empty-state"><i class="fa-solid fa-pills"></i><p>No se encontraron medicamentos.</p></div>`;
+        return;
+    }
+    let html = `<table class="admin-table">
+        <thead><tr><th>#</th><th>Nombre</th><th>Descripción</th><th>Dosis Recomendada</th><th>Acciones</th></tr></thead>
+        <tbody>`;
+    meds.forEach(m => {
+        html += `<tr>
+            <td>${m.id}</td>
+            <td>${m.nombre}</td>
+            <td>${m.descripcion}</td>
+            <td>${m.dosisRecomendada}</td>
+            <td>
+                <button class="btn-secondary btn-sm" onclick="abrirModalEditarMedicamento(${m.id})" style="padding: 0.4rem 0.85rem; font-size: 0.8rem; margin-right: 0.5rem;"><i class="fa-solid fa-pen-to-square"></i> Editar</button>
+                <button class="btn-danger" onclick="eliminarMedicamento(${m.id}, '${m.nombre}')"><i class="fa-solid fa-trash"></i> Eliminar</button>
+            </td>
+        </tr>`;
+    });
+    html += `</tbody></table>`;
+    wrap.innerHTML = html;
+}
+
+async function eliminarMedicamento(id, nombre) {
+    if (!confirm(`¿Eliminar el medicamento "${nombre}"?`)) return;
+    try {
+        const res = await fetch(`${API_URL}/recetas/medicamentos/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeader()
+        });
+        if (res.ok) {
+            loadAdminMedicamentos();
+        } else {
+            alert('No se pudo eliminar. Puede estar en uso en una receta.');
+        }
+    } catch(e) { console.error(e); }
+}
+
+function toggleFormNuevoMed() {
+    const wrap = document.getElementById('formNuevoMedAdminWrap');
+    wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+}
+
+if (document.getElementById('formNuevoMedAdmin')) {
+    document.getElementById('formNuevoMedAdmin').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById('msgNuevoMed');
+        const body = {
+            nombre:           document.getElementById('adminMedNombre').value,
+            descripcion:      document.getElementById('adminMedDesc').value,
+            dosisRecomendada: document.getElementById('adminMedDosis').value
+        };
+        try {
+            const res = await fetch(`${API_URL}/recetas/medicamentos`, {
+                method: 'POST',
+                headers: getAuthHeader(),
+                body: JSON.stringify(body)
+            });
+            if (res.ok) {
+                msg.style.color = '#10b981';
+                msg.innerText = '✅ Medicamento agregado.';
+                document.getElementById('formNuevoMedAdmin').reset();
+                loadAdminMedicamentos();
+                setTimeout(() => { msg.innerText = ''; }, 3000);
+            } else {
+                msg.style.color = '#ef4444';
+                msg.innerText = '❌ Error al guardar.';
+            }
+        } catch(e) { msg.style.color = '#ef4444'; msg.innerText = 'Error de conexión.'; }
+    });
+}
+
+// Legacy alias (kept for compatibility)
+async function loadAdminPanel() { return loadAdminResumen(); }
 
 
 // Manejar Agendamiento
@@ -495,6 +782,116 @@ if(document.getElementById('agendarCitaForm')) {
             }
         } catch (e) {
             console.error(e);
+        }
+    });
+}
+
+// ---------- FUNCIONES DE EDICIÓN (MODALES Y PUT) ----------
+
+// -- USUARIOS --
+function abrirModalEditarUsuario(id) {
+    const usuario = _adminUsuariosCache.find(u => u.id === id);
+    if (!usuario) {
+        alert('Usuario no encontrado en la caché.');
+        return;
+    }
+    document.getElementById('editUsuId').value = usuario.id;
+    document.getElementById('editUsuNombre').value = usuario.nombre;
+    document.getElementById('editUsuEmail').value = usuario.email;
+    document.getElementById('editUsuRol').value = usuario.rol;
+    document.getElementById('editUsuPassword').value = ''; // contraseña vacía por defecto
+    
+    document.getElementById('modalEditUsuario').style.display = 'flex';
+}
+
+function cerrarModalEditarUsuario() {
+    document.getElementById('modalEditUsuario').style.display = 'none';
+    document.getElementById('formEditUsuario').reset();
+}
+
+if (document.getElementById('formEditUsuario')) {
+    document.getElementById('formEditUsuario').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('editUsuId').value;
+        const nombre = document.getElementById('editUsuNombre').value;
+        const email = document.getElementById('editUsuEmail').value;
+        const password = document.getElementById('editUsuPassword').value;
+        const rol = document.getElementById('editUsuRol').value;
+
+        const body = { nombre, email, rol };
+        if (password.trim() !== '') {
+            body.password = password;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/data/usuarios/${id}`, {
+                method: 'PUT',
+                headers: getAuthHeader(),
+                body: JSON.stringify(body)
+            });
+
+            if (res.ok) {
+                alert('Usuario actualizado exitosamente.');
+                cerrarModalEditarUsuario();
+                loadAdminUsuarios();
+            } else {
+                const errMsg = await res.text();
+                alert('Error al actualizar usuario: ' + errMsg);
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Error de red al actualizar usuario.');
+        }
+    });
+}
+
+// -- MEDICAMENTOS --
+function abrirModalEditarMedicamento(id) {
+    const med = _adminMedicamentosCache.find(m => m.id === id);
+    if (!med) {
+        alert('Medicamento no encontrado en la caché.');
+        return;
+    }
+    document.getElementById('editMedId').value = med.id;
+    document.getElementById('editMedNombre').value = med.nombre;
+    document.getElementById('editMedDesc').value = med.descripcion;
+    document.getElementById('editMedDosis').value = med.dosisRecomendada;
+    
+    document.getElementById('modalEditMedicamento').style.display = 'flex';
+}
+
+function cerrarModalEditarMedicamento() {
+    document.getElementById('modalEditMedicamento').style.display = 'none';
+    document.getElementById('formEditMedicamento').reset();
+}
+
+if (document.getElementById('formEditMedicamento')) {
+    document.getElementById('formEditMedicamento').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('editMedId').value;
+        const nombre = document.getElementById('editMedNombre').value;
+        const descripcion = document.getElementById('editMedDesc').value;
+        const dosisRecomendada = document.getElementById('editMedDosis').value;
+
+        const body = { nombre, descripcion, dosisRecomendada };
+
+        try {
+            const res = await fetch(`${API_URL}/recetas/medicamentos/${id}`, {
+                method: 'PUT',
+                headers: getAuthHeader(),
+                body: JSON.stringify(body)
+            });
+
+            if (res.ok) {
+                alert('Medicamento actualizado exitosamente.');
+                cerrarModalEditarMedicamento();
+                loadAdminMedicamentos();
+            } else {
+                alert('Error al actualizar medicamento.');
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Error de red al actualizar medicamento.');
         }
     });
 }
