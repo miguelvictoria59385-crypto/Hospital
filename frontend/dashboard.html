@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - EPS Vitalis</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="dashboard-body">
+    <nav class="sidebar glass-panel">
+        <h2 class="brand-title">Vitalis<span>EPS</span></h2>
+        <p class="user-role" id="userRoleBadge">Rol</p>
+        
+        <ul class="nav-menu">
+            <li><button onclick="showSection('inicio')" class="nav-btn active"><i class="fa-solid fa-house"></i> Inicio</button></li>
+            <li class="afiliado-only"><button onclick="showSection('citas')" class="nav-btn"><i class="fa-solid fa-calendar-check"></i> Mis Citas</button></li>
+            <li class="afiliado-only"><button onclick="showSection('historial')" class="nav-btn"><i class="fa-solid fa-notes-medical"></i> Historial Clínico</button></li>
+            <li class="afiliado-only"><button onclick="showSection('facturas')" class="nav-btn"><i class="fa-solid fa-file-invoice-dollar"></i> Facturación</button></li>
+            
+            <li class="profesional-only" style="display:none;"><button onclick="showSection('agenda-doc')" class="nav-btn"><i class="fa-solid fa-calendar-day"></i> Mi Agenda</button></li>
+            <li class="profesional-only" style="display:none;"><button onclick="showSection('pacientes-doc')" class="nav-btn"><i class="fa-solid fa-users"></i> Mis Pacientes</button></li>
+            
+            <li class="admin-only" style="display:none;"><button onclick="showSection('admin')" class="nav-btn"><i class="fa-solid fa-chart-line"></i> Panel Admin</button></li>
+        </ul>
+        
+        <button onclick="logout()" class="btn-secondary logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión</button>
+    </nav>
+
+    <main class="main-content">
+        <header class="top-header glass-panel">
+            <h1 id="userGreeting">Bienvenido</h1>
+        </header>
+
+        <div class="content-area">
+            
+            <section id="sec-inicio" class="content-section active-section">
+                <div class="cards-grid">
+                    <div class="card glass-panel">
+                        <h3>Próxima Cita</h3>
+                        <p id="nextAppointment">No hay citas programadas.</p>
+                    </div>
+                    <div class="card glass-panel">
+                        <h3>Estado de Cuenta</h3>
+                        <p id="accountStatus">Al día</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="sec-citas" class="content-section hidden-section">
+                <div class="glass-panel">
+                    <h2>Agendar Nueva Cita</h2>
+                    <form id="agendarCitaForm" class="grid-form">
+                        <div class="input-group">
+                            <label>Especialidad/Profesional</label>
+                            <select id="selectProfesional" required>
+                                <option value="">Cargando...</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Centro de Salud</label>
+                            <select id="selectCentro" required>
+                                <option value="">Cargando...</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Fecha y Hora</label>
+                            <input type="datetime-local" id="citaFecha" required>
+                        </div>
+                        <button type="submit" class="btn-primary">Agendar</button>
+                    </form>
+                </div>
+                
+                <div class="glass-panel mt-20">
+                    <h2>Historial de Citas</h2>
+                    <ul id="listaCitas" class="data-list"></ul>
+                </div>
+            </section>
+
+            <section id="sec-historial" class="content-section hidden-section">
+                <div class="glass-panel">
+                    <h2>Mi Historial Clínico</h2>
+                    <ul id="listaHistorial" class="data-list"></ul>
+                </div>
+            </section>
+
+            <section id="sec-facturas" class="content-section hidden-section">
+                <div class="glass-panel">
+                    <h2>Mis Facturas</h2>
+                    <ul id="listaFacturas" class="data-list"></ul>
+                </div>
+            </section>
+
+            <section id="sec-agenda-doc" class="content-section hidden-section">
+                <div class="glass-panel">
+                    <h2><i class="fa-solid fa-calendar-day"></i> Citas Pendientes</h2>
+                    <ul id="listaAgendaDoc" class="data-list"></ul>
+                </div>
+            </section>
+
+            <section id="sec-pacientes-doc" class="content-section hidden-section">
+                <div class="glass-panel">
+                    <h2><i class="fa-solid fa-users"></i> Mis Pacientes</h2>
+                    <p class="text-muted" style="margin-bottom: 1rem; color: #94a3b8;">Selecciona un paciente para redactar historial o emitir receta.</p>
+                    <div class="input-group" style="max-width: 400px; margin-bottom: 1rem;">
+                        <select id="selectPacienteDoc" onchange="seleccionarPaciente()">
+                            <option value="">Seleccione Paciente...</option>
+                        </select>
+                    </div>
+
+                    <div id="panelAccionesPaciente" style="display:none; margin-top: 2rem;">
+                        
+                        <div class="cards-grid">
+                            <!-- Formulario de Historial -->
+                            <div class="card glass-panel" style="background: rgba(255,255,255,0.02)">
+                                <h3><i class="fa-solid fa-notes-medical"></i> Nuevo Historial</h3>
+                                <form id="formHistorialDoc" class="grid-form" style="margin-top: 1rem;">
+                                    <div class="input-group">
+                                        <label>Diagnóstico</label>
+                                        <textarea id="diagHistorial" required rows="3" style="width:100%; border-radius:8px; padding:0.75rem; background:rgba(0,0,0,0.2); border:1px solid var(--glass-border); color:#fff;"></textarea>
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Tratamiento General</label>
+                                        <textarea id="tratHistorial" required rows="3" style="width:100%; border-radius:8px; padding:0.75rem; background:rgba(0,0,0,0.2); border:1px solid var(--glass-border); color:#fff;"></textarea>
+                                    </div>
+                                    <button type="submit" class="btn-primary" style="width: 100%;"><i class="fa-solid fa-save"></i> Guardar Historial</button>
+                                </form>
+                            </div>
+
+                            <!-- Formulario de Receta -->
+                            <div class="card glass-panel" style="background: rgba(255,255,255,0.02)">
+                                <h3><i class="fa-solid fa-prescription-bottle-medical"></i> Emitir Receta</h3>
+                                <p class="text-muted" style="margin-bottom: 1rem; font-size: 0.85rem; color: #94a3b8;">(Requiere tener un historial clínico previo con el paciente)</p>
+                                <form id="formRecetaDoc" class="grid-form">
+                                    <div class="input-group">
+                                        <label>Medicamento</label>
+                                        <div style="display: flex; gap: 0.5rem;">
+                                            <select id="selectMedicamento" required style="flex: 1;">
+                                                <option value="">Cargando catálogo...</option>
+                                            </select>
+                                            <button type="button" class="btn-secondary" onclick="document.getElementById('modalNuevoMed').style.display='block'" style="padding: 0 1rem; font-size: 0.8rem;"><i class="fa-solid fa-plus"></i></button>
+                                        </div>
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Indicaciones (Dosis, frecuencia)</label>
+                                        <textarea id="indReceta" required rows="3" style="width:100%; border-radius:8px; padding:0.75rem; background:rgba(0,0,0,0.2); border:1px solid var(--glass-border); color:#fff;"></textarea>
+                                    </div>
+                                    <button type="submit" class="btn-primary" style="width: 100%; background: #10b981;"><i class="fa-solid fa-file-prescription"></i> Guardar Receta</button>
+                                </form>
+                            </div>
+                            
+                            <!-- Formulario de Remisión -->
+                            <div class="card glass-panel" style="background: rgba(255,255,255,0.02)">
+                                <h3><i class="fa-solid fa-user-doctor"></i> Remitir Paciente</h3>
+                                <p class="text-muted" style="margin-bottom: 1rem; font-size: 0.85rem; color: #94a3b8;">Agendar nueva cita con especialista</p>
+                                <form id="formRemisionDoc" class="grid-form">
+                                    <div class="input-group">
+                                        <label>Especialidad/Profesional</label>
+                                        <select id="selectProfRemision" required>
+                                            <option value="">Cargando...</option>
+                                        </select>
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Centro de Salud</label>
+                                        <select id="selectCentroRemision" required>
+                                            <option value="">Cargando...</option>
+                                        </select>
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Fecha y Hora</label>
+                                        <input type="datetime-local" id="fechaRemision" required>
+                                    </div>
+                                    <button type="submit" class="btn-primary" style="width: 100%;"><i class="fa-solid fa-calendar-plus"></i> Agendar Remisión</button>
+                                </form>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+            <!-- Modal Nuevo Medicamento -->
+            <div id="modalNuevoMed" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
+                <div class="glass-panel" style="width: 400px; background: var(--bg-gradient-1);">
+                    <h3>Añadir Nuevo Medicamento</h3>
+                    <form id="formNuevoMed" style="margin-top: 1rem;">
+                        <div class="input-group" style="margin-bottom: 1rem;">
+                            <label>Nombre del Medicamento</label>
+                            <input type="text" id="nuevoMedNombre" required>
+                        </div>
+                        <div class="input-group" style="margin-bottom: 1rem;">
+                            <label>Descripción</label>
+                            <input type="text" id="nuevoMedDesc" required>
+                        </div>
+                        <div class="input-group" style="margin-bottom: 1rem;">
+                            <label>Dosis Recomendada Estándar</label>
+                            <input type="text" id="nuevoMedDosis" required placeholder="Ej: 500mg cada 8 horas">
+                        </div>
+                        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                            <button type="button" class="btn-secondary" style="flex:1;" onclick="document.getElementById('modalNuevoMed').style.display='none'">Cancelar</button>
+                            <button type="submit" class="btn-primary" style="flex:1;">Guardar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <section id="sec-admin" class="content-section hidden-section">
+                <div class="glass-panel">
+                    <h2>Estadísticas</h2>
+                    <div class="cards-grid">
+                        <div class="card glass-panel"><h3>Total Usuarios</h3><p id="totalUsuarios">0</p></div>
+                        <div class="card glass-panel"><h3>Total Citas</h3><p id="totalCitas">0</p></div>
+                    </div>
+                </div>
+                <div class="glass-panel mt-20">
+                    <h2>Directorio de Usuarios</h2>
+                    <ul id="listaTodosUsuarios" class="data-list"></ul>
+                </div>
+            </section>
+
+        </div>
+    </main>
+    <script src="app.js"></script>
+    <script>
+        // Check si está autenticado
+        if (!localStorage.getItem('token')) {
+            window.location.href = 'index.html';
+        }
+        initDashboard();
+    </script>
+</body>
+</html>

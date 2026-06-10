@@ -1,0 +1,13 @@
+# Spring Boot
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/logs/
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# OS generated files
+.DS_Store
+Thumbs.db
